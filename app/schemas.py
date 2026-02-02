@@ -1,11 +1,7 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Optional, List
 
-
-# ----------------------
-# User Schemas
-# ----------------------
-
+# User schemas
 class UserCreate(BaseModel):
     email: str
     password: str
@@ -18,74 +14,48 @@ class UserOut(BaseModel):
     id: int
     email: str
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
+# JWT Token schema
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str
 
-# ----------------------
-# Product Schemas
-# ----------------------
+    model_config = {"from_attributes": True}
 
+# Product schemas
 class ProductCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: Optional[str]
     price: float
     stock: int
 
 class ProductOut(BaseModel):
     id: int
     name: str
-    description: Optional[str] = None
+    description: Optional[str]
     price: float
     stock: int
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
-
-# ----------------------
-# Cart Schemas
-# ----------------------
-
+# Cart schemas
 class CartAdd(BaseModel):
     product_id: int
     quantity: int
 
 class CartItemOut(BaseModel):
-    id: int
     product_id: int
     quantity: int
-    product: ProductOut  # nested product details
+    price_per_unit: float
+    total_price: float
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
 
-
-# ----------------------
-# Order Schemas
-# ----------------------
-
-class OrderItemOut(BaseModel):
-    id: int
-    order_id: int
-    product_id: int
-    quantity: int
-    price: float
-    product: ProductOut
-
-    model_config = {
-        "from_attributes": True
-    }
-
+# Order schemas
 class OrderOut(BaseModel):
     id: int
-    user_id: int
     total_amount: float
-    items: List[OrderItemOut] = []
+    items: List[CartItemOut]
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}

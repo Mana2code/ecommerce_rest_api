@@ -1,243 +1,77 @@
-
-
-# **Sample Test Inputs for Ecommerce REST API**
-
-### **1️⃣ User Endpoints**
-
-#### **a) Create User**
-
-**Endpoint:** `POST /users/register`
-**Purpose:** Create a new user
-
-**Sample Input:**
-
-```json
-{
-  "email": "john@example.com",
-  "password": "Password123!"
-}
-```
-
-**Expectations:**
-
-* Returns 201 Created
-* Response includes `id` and `email` (UserOut schema)
-* Password is hashed (not returned)
+Perfect! Let’s create a **comprehensive sample test input table** for **all APIs** in your FastAPI e-commerce app. This can be used by **manual testers via Swagger/Postman** or **automation engineers via Playwright**. I’ll include **method, endpoint, headers, body, and expected response details**.
 
 ---
 
-#### **b) Login User**
-
-**Endpoint:** `POST /users/login`
-**Purpose:** Authenticate user
-
-**Sample Input:**
-
-```json
-{
-  "email": "john@example.com",
-  "password": "Password123!"
-}
-```
-
-**Expectations:**
-
-* Returns JWT token (`access_token`) and type `"bearer"`
-* Can be used in `Authorization: Bearer <token>` header for all protected endpoints
+# **Sample Test Inputs for E-Commerce REST API**
 
 ---
 
-#### **c) Get Current User (Me)**
+## **1️⃣ User APIs**
 
-**Endpoint:** `GET /users/me`
-**Headers:** `Authorization: Bearer <access_token>`
-**Purpose:** Get current logged-in user
-
-**Expectations:**
-
-* Returns UserOut (`id` and `email`)
-* Should match the logged-in user
+| Action           | Method | Endpoint          | Headers                         | Body (JSON)                                                 | Expected Result / Notes                                              |
+| ---------------- | ------ | ----------------- | ------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| Register User    | POST   | `/users/register` | None                            | `{ "email": "alice@example.com", "password": "Alice123!" }` | Returns `UserOut` with `id` and `email`. 400 if email already exists |
+| Login User       | POST   | `/users/login`    | None                            | `{ "email": "alice@example.com", "password": "Alice123!" }` | Returns `TokenOut` with `access_token` and `token_type: "bearer"`    |
+| Get Current User | GET    | `/users/me`       | `Authorization: Bearer <token>` | None                                                        | Returns `UserOut` for logged-in user. 401 if token missing/invalid   |
+| Get User Orders  | GET    | `/users/orders`   | `Authorization: Bearer <token>` | None                                                        | Returns list of `OrderOut`. Empty list if no orders                  |
 
 ---
 
-### **2️⃣ Product Endpoints**
+## **2️⃣ Product APIs**
 
-#### **a) Create Product**
-
-**Endpoint:** `POST /products/`
-**Headers:** `Authorization: Bearer <admin_token>` (if admin protected)
-
-**Sample Input:**
-
-```json
-{
-  "name": "Laptop",
-  "description": "Gaming laptop",
-  "price": 1200.50,
-  "stock": 5
-}
-```
-
-**Expectations:**
-
-* Returns ProductOut including `id`, `name`, `price`, `stock`, `description`
+| Action            | Method | Endpoint         | Headers                         | Body (JSON)                                                                             | Expected Result / Notes                       |
+| ----------------- | ------ | ---------------- | ------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Create Product    | POST   | `/products/`     | `Authorization: Bearer <token>` | `{ "name": "Laptop", "description": "Intel i7, 16GB RAM", "price": 1500, "stock": 10 }` | Returns `ProductOut` with product details     |
+| List Products     | GET    | `/products/`     | `Authorization: Bearer <token>` | None                                                                                    | Returns list of all products (`ProductOut`)   |
+| Get Product by ID | GET    | `/products/{id}` | `Authorization: Bearer <token>` | None                                                                                    | Returns single `ProductOut`. 404 if not found |
+| Update Product    | PUT    | `/products/{id}` | `Authorization: Bearer <token>` | `{ "name": "Laptop Pro", "price": 1600, "stock": 8 }`                                   | Updates and returns updated `ProductOut`      |
+| Delete Product    | DELETE | `/products/{id}` | `Authorization: Bearer <token>` | None                                                                                    | 200 OK if deleted, 404 if not found           |
 
 ---
 
-#### **b) Get All Products**
+## **3️⃣ Cart APIs**
 
-**Endpoint:** `GET /products/`
-
-**Expectations:**
-
-* Returns list of ProductOut
-* Each product has `id`, `name`, `price`, `stock`, `description`
-
----
-
-#### **c) Get Single Product**
-
-**Endpoint:** `GET /products/{product_id}`
-
-**Sample:** `GET /products/1`
-
-**Expectations:**
-
-* Returns ProductOut of requested product
-* 404 if product not found
+| Action           | Method | Endpoint         | Headers                         | Body (JSON)                          | Expected Result / Notes                                                             |
+| ---------------- | ------ | ---------------- | ------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------- |
+| Add Item to Cart | POST   | `/cart/`         | `Authorization: Bearer <token>` | `{ "product_id": 1, "quantity": 2 }` | Returns `CartItemOut` with product_id, quantity, price, total_price                 |
+| View Cart        | GET    | `/cart/`         | `Authorization: Bearer <token>` | None                                 | Returns list of all cart items (`CartItemOut`)                                      |
+| Checkout Cart    | POST   | `/cart/checkout` | `Authorization: Bearer <token>` | None                                 | Creates `Order` and `OrderItem`, clears cart. Returns `OrderOut`. 400 if cart empty |
 
 ---
 
-#### **d) Update Product**
+## **4️⃣ Notes for Manual Testing (Swagger/Postman)**
 
-**Endpoint:** `PUT /products/{product_id}`
+1. Always **register a user first** → then login to get token.
+2. Use **Bearer token** in Authorization header for all protected endpoints.
 
-**Sample Input:**
-
-```json
-{
-  "name": "Laptop Pro",
-  "description": "Updated gaming laptop",
-  "price": 1300.00,
-  "stock": 3
-}
-```
-
-**Expectations:**
-
-* Returns updated ProductOut
-* Fields reflect the update
+   * Example: `Authorization: Bearer eyJhbGciOiJI...`
+3. **Product stock** should decrement correctly when adding/checkout (if implemented).
+4. **Cart should be empty** after checkout.
+5. `/users/orders` should reflect newly created orders with correct items and prices.
 
 ---
 
-#### **e) Delete Product**
+## **5️⃣ Notes for Automation Testing (Playwright / Scripts)**
 
-**Endpoint:** `DELETE /products/{product_id}`
+1. **Set base URL:** `http://localhost:9000`
 
-**Expectations:**
+2. **Steps for a full e2e test:**
 
-* Returns `{"message": "Product deleted"}`
-* Product removed from GET list
+   * Register a user
+   * Login and save token
+   * Create 1–2 products
+   * Add products to cart
+   * View cart and assert totals
+   * Checkout
+   * Verify order appears in `/users/orders`
+   * Verify cart is empty after checkout
 
----
+3. **Assertions to consider:**
 
-### **3️⃣ Cart Endpoints**
-
-#### **a) Add to Cart**
-
-**Endpoint:** `POST /cart/`
-**Headers:** `Authorization: Bearer <token>`
-
-**Sample Input:**
-
-```json
-{
-  "product_id": 1,
-  "quantity": 2
-}
-```
-
-**Expectations:**
-
-* Adds product to user’s cart
-* Returns `{"message": "Added to cart"}`
-
----
-
-#### **b) View Cart**
-
-**Endpoint:** `GET /cart/`
-**Headers:** `Authorization: Bearer <token>`
-
-**Expectations:**
-
-* Returns list of CartItemOut
-* Each item includes `product` nested object
-
----
-
-#### **c) Checkout Cart**
-
-**Endpoint:** `POST /cart/checkout`
-**Headers:** `Authorization: Bearer <token>`
-
-**Expectations:**
-
-* Returns OrderOut with:
-
-  * `id`
-  * `user_id`
-  * `total_amount`
-  * `items`: List of OrderItemOut including `product` details
-
-**Sample Response (Partial)**
-
-```json
-{
-  "id": 1,
-  "user_id": 1,
-  "total_amount": 2401.0,
-  "items": [
-    {
-      "id": 1,
-      "order_id": 1,
-      "product_id": 1,
-      "quantity": 2,
-      "price": 1200.50,
-      "product": {
-        "id": 1,
-        "name": "Laptop",
-        "description": "Gaming laptop",
-        "price": 1200.50,
-        "stock": 3
-      }
-    }
-  ]
-}
-```
-
----
-
-### **4️⃣ Orders Endpoints**
-
-#### **a) Get User Orders**
-
-**Endpoint:** `GET /users/orders`
-**Headers:** `Authorization: Bearer <token>`
-
-**Expectations:**
-
-* Returns list of OrderOut
-* Each order contains items and nested product info
-
----
-
-### **5️⃣ Notes for Manual Testing via Swagger / Postman**
-
-1. Always include **Authorization: Bearer <token>** after login.
-2. Test **invalid inputs**: negative quantities, missing fields, invalid emails, duplicate products.
-3. Test **edge cases**: empty cart checkout, out-of-stock products, deleting a product in cart.
-4. Check **response structure** matches schemas: `UserOut`, `ProductOut`, `CartItemOut`, `OrderOut`.
+   * Status codes (`200/201/400/401`)
+   * JSON schema matches `UserOut`, `ProductOut`, `CartItemOut`, `OrderOut`
+   * Cart totals = sum of `price_per_unit * quantity`
+   * Token-protected endpoints fail if **Authorization header missing or invalid**
 
 ---
 
