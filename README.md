@@ -1,7 +1,5 @@
 # Ecommerce REST API – Test Engineer Guide
 
-This document is written for **Manual Test Engineers** and **Automation Test Engineers**.
-It explains how to start the server, what APIs are available, and what to test with clear expectations.
 
 ---
 
@@ -9,15 +7,15 @@ It explains how to start the server, what APIs are available, and what to test w
 
 ### Prerequisites
 
-* macOS
-* Docker Desktop installed and running
 
-### Directory Preparation (One-Time)
+*  Docker is running. (Run docker by launching)
+
+### Database directory
 
 The database is persisted on the host machine.
 
 ```bash
-mkdir -p /Users/smruti/Dev/2mpattanaik/ecommerce_rest_api/docker_data
+ /Users/smruti/Dev/2mpattanaik/ecommerce_rest_api/docker_data
 ```
 
 ### Build and Start the Server

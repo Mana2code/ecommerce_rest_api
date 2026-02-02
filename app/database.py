@@ -1,20 +1,22 @@
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
 
-from .config import get_db_path
-
-DB_PATH = get_db_path()
-DATABASE_URL = f"sqlite:///{DB_PATH}"
-
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+# Determine DB path
+DB_PATH = os.environ.get("DB_PATH") or "./local_data/shop.db"
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
-
-SessionLocal = sessionmaker(bind=engine, autoflush=False)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
-print(f"Using database at: {DB_PATH}")
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

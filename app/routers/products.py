@@ -1,50 +1,106 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from typing import List
 
-from ..models import Product
-from ..schemas import ProductCreate
 from ..database import get_db
+from ..models import Product, User
+from ..schemas import ProductCreate, ProductOut
 from ..dependencies import get_current_user
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
-@router.post("/")
+# ----------------------------
+# Create a product
+# ----------------------------
+@router.post("/", response_model=ProductOut)
 def create_product(
-    p: ProductCreate,
+    product: ProductCreate,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ):
-    product = Product(**p.dict())
-    db.add(product)
+    # You may add admin check here if needed
+    db_product = Product(
+        name=product.name,
+        description=product.description,
+        price=product.price,
+        stock=product.stock
+    )
+    db.add(db_product)
     db.commit()
-    return product
+    db.refresh(db_product)
+    return db_product
 
-@router.get("/")
+
+# ----------------------------
+# List all products
+# ----------------------------
+@router.get("/", response_model=List[ProductOut])
 def list_products(
     db: Session = Depends(get_db),
-    user=Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ):
-    return db.query(Product).all()
+    products = db.query(Product).all()
+    return products
 
-@router.put("/{product_id}")
-def update_product(
+
+# ----------------------------
+# Get product by ID
+# ----------------------------
+@router.get("/{product_id}", response_model=ProductOut)
+def get_product(
     product_id: int,
-    p: ProductCreate,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ):
     product = db.query(Product).filter(Product.id == product_id).first()
-    product.name = p.name
-    product.price = p.price
-    db.commit()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
     return product
 
+
+# ----------------------------
+# Update product
+# ----------------------------
+@router.put("/{product_id}", response_model=ProductOut)
+def update_product(
+    product_id: int,
+    product_data: ProductCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    product.name = product_data.name
+    product.description = product_data.description
+    product.price = product_data.price
+    product.stock = product_data.stock
+
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+# ----------------------------
+# Delete product
+# ----------------------------
 @router.delete("/{product_id}")
 def delete_product(
     product_id: int,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user)
+    user: User = Depends(get_current_user)
 ):
-    db.query(Product).filter(Product.id == product_id).delete()
-    db.commit()
-    return {"message": "Deleted"}
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    try:
+        db.delete(product)
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete product: {str(e)}")
+
+    return {"message": "Product deleted successfully"}

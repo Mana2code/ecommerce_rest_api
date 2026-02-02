@@ -2,6 +2,9 @@ import os
 
 LOCAL_DB_PATH = "/Users/smruti/Dev/2mpattanaik/ecommerce_rest_api/local_data/shop.db"
 DOCKER_DB_PATH = "/data/shop.db"
+SECRET_KEY = "supersecret"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 def running_in_docker() -> bool:
     return os.path.exists("/.dockerenv")
