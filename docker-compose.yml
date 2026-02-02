@@ -1,0 +1,8 @@
+
+services:
+  api:
+    build: .
+    ports:
+      - "9000:9000"
+    volumes:
+      - /Users/smruti/Dev/2mpattanaik/ecommerce_rest_api/docker_data:/data

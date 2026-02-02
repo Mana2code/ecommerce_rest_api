@@ -1,0 +1,31 @@
+# Environment variables and secrets
+.env
+.flaskenv
+
+# Python virtual environments
+venv/
+.venv/
+env/
+ENV/
+docker_data/
+local_data/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Databases (if using local SQLite for development)
+*.sqlite3
+instance/
+
+# IDE-specific files
+.vscode/
+.idea/
+.DS_Store
+*.db
