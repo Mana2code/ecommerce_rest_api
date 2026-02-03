@@ -36,39 +36,61 @@ def view_cart(db: Session = Depends(get_db), user: User = Depends(get_current_us
         ) for i in items
     ]
 
-# Checkout
 @router.post("/checkout", response_model=OrderOut)
-def checkout(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    cart_items = db.query(CartItem).filter(CartItem.user_id == user.id).all()
+def checkout(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Fetch all cart items for the user
+    cart_items = db.query(CartItem).filter(CartItem.user_id == current_user.id).all()
     if not cart_items:
         raise HTTPException(status_code=400, detail="Cart is empty")
 
+    # Calculate total amount
     total_amount = sum(item.product.price * item.quantity for item in cart_items)
 
     try:
-        order = Order(user_id=user.id, total_amount=total_amount)
+        # Start transaction: create Order
+        order = Order(user_id=current_user.id, total_amount=total_amount)
         db.add(order)
-        db.flush()  # get order.id without commit
+        db.flush()  # get order.id without committing
 
-        order_items = []
+        order_items_out = []
+        # Create OrderItems
         for item in cart_items:
-            oi = OrderItem(order_id=order.id, product_id=item.product_id, quantity=item.quantity, price=item.product.price)
-            db.add(oi)
-            order_items.append(
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
+                price=item.product.price
+            )
+            db.add(order_item)
+
+            order_items_out.append(
                 CartItemOut(
-                    product_id=oi.product_id,
-                    quantity=oi.quantity,
-                    price_per_unit=oi.price,
-                    total_price=oi.price * oi.quantity
+                    product_id=order_item.product_id,
+                    quantity=order_item.quantity,
+                    price_per_unit=order_item.price,
+                    total_price=order_item.price * order_item.quantity
                 )
             )
 
-        db.query(CartItem).filter(CartItem.user_id == user.id).delete(synchronize_session=False)
+        # Clear user's cart
+        db.query(CartItem).filter(CartItem.user_id == current_user.id).delete(synchronize_session=False)
+
+        # Commit everything
         db.commit()
         db.refresh(order)
 
-        return OrderOut(id=order.id, total_amount=total_amount, items=order_items)
+        return OrderOut(
+            id=order.id,
+            total_amount=total_amount,
+            items=order_items_out
+        )
 
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Checkout failed: {str(e)}")
+    except Exception as e:
+        db.rollback()
+

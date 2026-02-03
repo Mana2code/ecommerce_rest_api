@@ -5,14 +5,22 @@ from .database import get_db
 from .models import User
 from .utils.jwt import decode_access_token
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     payload = decode_access_token(token)
-    email: str = payload.get("sub")
-    if not email:
+
+    # This is actually the user ID based on your auth.py
+    user_id: str = payload.get("sub")
+
+    if not user_id:
         raise HTTPException(status_code=401, detail="Invalid authentication token")
-    user = db.query(User).filter(User.email == email).first()
+
+    # Query by ID, not Email
+    user = db.query(User).filter(User.id == int(user_id)).first()
+
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
+
